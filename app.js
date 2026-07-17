@@ -24,12 +24,39 @@ let state = {
 };
 
 // ---------- Data layer (Google Sheet via Apps Script) ----------
+const CACHE_KEY = "kitchenForTwo_recipesCache";
+
+function loadCachedRecipes() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function saveCachedRecipes(list) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(list));
+  } catch (err) {
+    // if storage is full or blocked, just skip caching, the app still works
+  }
+}
+
 async function loadRecipes() {
+  // Show whatever we saw last time immediately, no waiting on the network for this part
+  const cached = loadCachedRecipes();
+  if (cached && cached.length) {
+    recipes = cached;
+    renderAll();
+  }
+
   if (!API_URL || API_URL.indexOf("PASTE_YOUR") === 0) {
-    setSyncStatus("Connect the Google Sheet in config.js to start saving recipes");
+    if (!cached || !cached.length) setSyncStatus("Connect the Google Sheet in config.js to start saving recipes");
     return;
   }
-  setSyncStatus("Loading our recipes...");
+
+  if (!cached || !cached.length) setSyncStatus("Loading our recipes...");
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
@@ -37,10 +64,11 @@ async function loadRecipes() {
       ...r,
       ingredients: Array.isArray(r.ingredients) ? r.ingredients : String(r.ingredients || "").split(";").map(s => s.trim()).filter(Boolean)
     }));
+    saveCachedRecipes(recipes);
     setSyncStatus("");
     renderAll();
   } catch (err) {
-    setSyncStatus("Could not reach the Google Sheet — showing sample data");
+    setSyncStatus(cached && cached.length ? "Could not reach the Google Sheet, showing what was saved last" : "Could not reach the Google Sheet");
   }
 }
 
@@ -73,6 +101,13 @@ function daysSince(dateStr) {
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function recencyKey(r) {
+  const idNum = Number(r.id);
+  if (!isNaN(idNum) && idNum > 0) return idNum;
+  const t = new Date(r.lastCooked).getTime();
+  return isNaN(t) ? 0 : t;
 }
 
 // "chicken rice" -> "Chicken Rice"
@@ -134,7 +169,7 @@ function renderCookbook() {
     const matchCuisine = state.cookbookCuisine === "All" || r.cuisine === state.cookbookCuisine;
     const matchSearch = !q || r.name.toLowerCase().includes(q) || r.cuisine.toLowerCase().includes(q) || r.ingredients.some(i => i.toLowerCase().includes(q));
     return matchCuisine && matchSearch;
-  }).sort((a, b) => new Date(b.lastCooked) - new Date(a.lastCooked));
+  }).sort((a, b) => recencyKey(b) - recencyKey(a));
 
   if (!state.autoExpandDone && filtered.length > 0) {
     state.expandedId = filtered[0].id;
@@ -249,6 +284,7 @@ async function saveRecipe() {
 
   closeForm();
   renderAll();
+  saveCachedRecipes(recipes);
   await saveRecipeToSheet(recipeObj);
 }
 
