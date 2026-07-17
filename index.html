@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kitchen for Two</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <svg width="72" height="60" viewBox="0 0 72 60" class="pot-illustration">
+      <path d="M14 52 Q10 34 14 30 H58 Q62 34 58 52 Z" fill="#FF6B6A" />
+      <ellipse cx="36" cy="30" rx="24" ry="5" fill="#FFC93C" />
+      <rect x="4" y="26" width="10" height="6" rx="3" fill="#FFC93C" />
+      <rect x="58" y="26" width="10" height="6" rx="3" fill="#FFC93C" />
+      <path d="M22 24 L20 6" stroke="#3DCCC7" stroke-width="3.5" stroke-linecap="round" />
+      <circle cx="20" cy="5" r="3.5" fill="#3DCCC7" />
+      <path d="M32 24 L36 4" stroke="#8B7FE8" stroke-width="3.5" stroke-linecap="round" />
+      <circle cx="36.5" cy="3" r="3.5" fill="#8B7FE8" />
+      <path d="M8 18 Q11 12 8 6" stroke="#FFC93C" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.7" />
+      <path d="M64 18 Q61 12 64 6" stroke="#FF8E53" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.7" />
+    </svg>
+    <div class="title">Kitchen for Two</div>
+    <div class="subhead">The Little Cookbook We Built Together</div>
+  </div>
+
+  <!-- Sync status -->
+  <div id="syncStatus" class="sync-status"></div>
+
+  <!-- COOKBOOK TAB -->
+  <div id="view-cookbook" class="view">
+    <div class="search-row">
+      <div class="search-box">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#B0A69A" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="cookbookSearch" placeholder="Search dish or ingredient..." />
+      </div>
+      <button id="openAddForm" class="add-btn" aria-label="Add new recipe">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div id="cookbookCuisineChips" class="chip-row"></div>
+    <div id="recipeList" class="recipe-list"></div>
+    <div id="cookbookEmpty" class="empty-state" style="display:none;">Nothing here yet. Tap + to log our first recipe.</div>
+  </div>
+
+  <!-- SPOONPRISE US TAB -->
+  <div id="view-random" class="view" style="display:none;">
+    <div class="section-title">When "anything" isn't helping...</div>
+    <div id="randomCuisineChips" class="chip-row" style="margin-bottom:20px;"></div>
+    <button id="rollRandomBtn" class="roll-btn">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+      Spoon Me a Recipe
+    </button>
+    <div id="randomResult" class="random-result"></div>
+  </div>
+
+  <!-- THIS WEEK TAB -->
+  <div id="view-week" class="view" style="display:none;">
+    <div class="section-title">This week's menu</div>
+    <div class="search-row" style="margin-top:0;">
+      <div class="search-box">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#B0A69A" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="weekSearch" placeholder="Search this week's dishes..." />
+      </div>
+    </div>
+    <div id="weekCuisineChips" class="chip-row"></div>
+    <div id="weekRecipeList" class="week-recipe-list"></div>
+
+    <div id="shoppingListCard" class="shopping-card" style="display:none;">
+      <div class="shopping-header">
+        <div class="shopping-title">Shopping list</div>
+        <button id="copyListBtn" class="copy-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <div id="shoppingListItems"></div>
+      <div class="add-extra-row">
+        <input id="extraInput" placeholder="Add another item..." />
+        <button id="addExtraBtn">Add</button>
+      </div>
+    </div>
+    <div id="weekEmpty" class="empty-state">Select a few dishes above and our list will show up here.</div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-tab="cookbook">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>Cookbook</span>
+    </button>
+    <button class="nav-btn" data-tab="random">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+      <span>Spoonprise Us</span>
+    </button>
+    <button class="nav-btn" data-tab="week">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span>This Week</span>
+    </button>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="formModal" class="modal-overlay" style="display:none;">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title">New recipe</div>
+        <button id="closeForm" class="close-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#3D2645" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <input id="formName" placeholder="Dish name" />
+      <select id="formCuisine"></select>
+      <textarea id="formRecipeText" placeholder="How do we cook this?" rows="4"></textarea>
+      <input id="formIngredients" placeholder="Main ingredients, comma separated" />
+      <input id="formNotes" placeholder="Notes (tweaks for next time)" />
+      <button id="saveRecipeBtn" class="save-btn">Save recipe</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
