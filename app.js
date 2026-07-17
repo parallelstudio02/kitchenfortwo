@@ -6,17 +6,9 @@ const CUISINE_COLORS = {
 };
 const STALE_DAYS = 30;
 
-// Sample recipes shown until the Google Sheet is connected (see config.js)
-let recipes = [
-  { id: "1", name: "Claypot Chicken Rice", cuisine: "Chinese",
-    recipeText: "Marinate chicken with soy sauce, sesame oil, ginger. Layer rice, chicken, chinese sausage in claypot. Cook on low heat 25 min until crust forms at the bottom.",
-    ingredients: ["Chicken thigh", "Rice", "Chinese sausage", "Ginger", "Spring onion"],
-    notes: "Add a bit less water next time, rice was too soft.", lastCooked: "2026-06-02" },
-  { id: "2", name: "Mentaiko Pasta", cuisine: "Japanese",
-    recipeText: "Cook pasta al dente. Mix mentaiko roe with butter and a splash of pasta water. Toss pasta through, top with nori strips.",
-    ingredients: ["Pasta", "Mentaiko", "Butter", "Nori", "Shiso leaf"],
-    notes: "We like extra mentaiko on top.", lastCooked: "2026-05-14" },
-];
+// Starts empty — recipes come from the Google Sheet once config.js is connected,
+// or from whatever you add in the Cookbook tab.
+let recipes = [];
 
 let state = {
   tab: "cookbook",
@@ -33,7 +25,7 @@ let state = {
 // ---------- Data layer (Google Sheet via Apps Script) ----------
 async function loadRecipes() {
   if (!API_URL || API_URL.indexOf("PASTE_YOUR") === 0) {
-    setSyncStatus("Using sample data — connect the Google Sheet in config.js");
+    setSyncStatus("Connect the Google Sheet in config.js to start saving recipes");
     return;
   }
   setSyncStatus("Loading our recipes...");
@@ -82,6 +74,27 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// "chicken rice" -> "Chicken Rice"
+function toTitleCase(str) {
+  return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+}
+
+// "BACON" or "bacon" -> "Bacon", "chicken thigh" -> "Chicken thigh"
+function toSentenceCase(str) {
+  const s = str.trim();
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// Splits a block of recipe text into individual sentences/steps
+function splitIntoSentences(text) {
+  if (!text) return [];
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 function renderChips(containerId, selected, onPick) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
@@ -120,6 +133,8 @@ function renderCookbook() {
     card.className = "recipe-card " + tiltClass;
 
     const ingredientPills = r.ingredients.map(i => `<span class="ingredient-pill">${escapeHtml(i)}</span>`).join("");
+    const recipeLines = String(r.recipeText || "").split("\n").filter(Boolean)
+      .map(line => `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
     const notesHtml = r.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(r.notes)}</span></div>` : "";
 
     card.innerHTML = `
@@ -137,7 +152,7 @@ function renderCookbook() {
         <div class="detail-label">Ingredients</div>
         <div>${ingredientPills}</div>
         <div class="detail-label" style="margin-top:6px;">Recipe</div>
-        <p class="recipe-text">${escapeHtml(r.recipeText)}</p>
+        <div class="recipe-steps">${recipeLines}</div>
         ${notesHtml}
       </div>` : ""}
     `;
@@ -185,11 +200,13 @@ function closeForm() {
 }
 
 async function saveRecipe() {
-  const name = document.getElementById("formName").value.trim();
-  if (!name) return;
+  const rawName = document.getElementById("formName").value.trim();
+  if (!rawName) return;
+  const name = toTitleCase(rawName);
   const cuisine = document.getElementById("formCuisine").value;
-  const recipeText = document.getElementById("formRecipeText").value.trim();
-  const ingredients = document.getElementById("formIngredients").value.split(",").map(s => s.trim()).filter(Boolean);
+  const rawRecipeText = document.getElementById("formRecipeText").value.trim();
+  const recipeText = splitIntoSentences(rawRecipeText).map(toSentenceCase).join("\n");
+  const ingredients = document.getElementById("formIngredients").value.split(",").map(s => s.trim()).filter(Boolean).map(toSentenceCase);
   const notes = document.getElementById("formNotes").value.trim();
 
   // Logging a recipe with the same name overrides the existing one (latest version wins)
@@ -214,6 +231,7 @@ async function saveRecipe() {
 
 // ---------- Spoonprise Us tab ----------
 let randomCuisine = "All";
+let randomExpanded = false;
 function renderRandomTab() {
   renderChips("randomCuisineChips", randomCuisine, (c) => { randomCuisine = c; renderRandomTab(); });
 }
@@ -225,15 +243,36 @@ function rollRandom() {
     resultEl.innerHTML = `<div class="empty-state">No recipes logged for this cuisine yet.</div>`;
     return;
   }
+  randomExpanded = false;
   resultEl.innerHTML = `<div class="spinning-text">the spoon has spoken. 🥄</div>`;
   setTimeout(() => {
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    resultEl.innerHTML = `
-      <div class="result-card">
-        <div class="result-name">${escapeHtml(pick.name)}</div>
-        <span class="badge" style="background:${CUISINE_COLORS[pick.cuisine] || CUISINE_COLORS.Other}">${escapeHtml(pick.cuisine)}</span>
-      </div>`;
+    renderRandomResult(pick);
   }, 500);
+}
+
+function renderRandomResult(pick) {
+  const resultEl = document.getElementById("randomResult");
+  const ingredientPills = pick.ingredients.map(i => `<span class="ingredient-pill">${escapeHtml(i)}</span>`).join("");
+  const recipeLines = String(pick.recipeText || "").split("\n").filter(Boolean)
+    .map(line => `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
+  const notesHtml = pick.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(pick.notes)}</span></div>` : "";
+
+  resultEl.innerHTML = `
+    <div class="result-card" style="cursor:pointer;">
+      <div class="result-name">${escapeHtml(pick.name)}</div>
+      <span class="badge" style="background:${CUISINE_COLORS[pick.cuisine] || CUISINE_COLORS.Other}">${escapeHtml(pick.cuisine)}</span>
+      ${randomExpanded ? `
+        <div class="card-detail" style="text-align:left; margin-top:14px;">
+          <div class="detail-label">Ingredients</div>
+          <div>${ingredientPills}</div>
+          <div class="detail-label" style="margin-top:6px;">Recipe</div>
+          <div class="recipe-steps">${recipeLines}</div>
+          ${notesHtml}
+        </div>` : `<div class="tap-hint">tap to see the ingredients</div>`}
+    </div>`;
+
+  resultEl.querySelector(".result-card").onclick = () => { randomExpanded = !randomExpanded; renderRandomResult(pick); };
 }
 
 // ---------- This Week tab ----------

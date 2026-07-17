@@ -128,11 +128,13 @@ body {
   background: var(--bg); color: var(--plum); font-size: 12px; padding: 4px 10px;
   border-radius: 10px; font-weight: 600; display: inline-block; margin: 0 6px 6px 0;
 }
-.recipe-text { font-size: 13.5px; color: #4A3F52; line-height: 1.5; margin: 0 0 10px; }
+.recipe-steps { margin: 0 0 10px; }
+.recipe-line { font-size: 13.5px; color: #4A3F52; line-height: 1.5; margin: 0 0 8px; }
+.recipe-line:last-child { margin-bottom: 0; }
 .notes-box {
-  display: flex; gap: 6px; background: #FFF9EC; padding: 8px 10px; border-radius: 10px;
+  display: flex; gap: 6px; background: #F5DFA0; padding: 8px 10px; border-radius: 10px;
 }
-.notes-box span { font-size: 12.5px; color: #5A4A3F; font-style: italic; }
+.notes-box span { font-size: 12.5px; color: #6B4A1F; font-style: italic; }
 
 .section-title { font-family: 'Baloo 2', sans-serif; font-size: 20px; font-weight: 700; margin: 8px 0 4px; }
 
@@ -150,6 +152,7 @@ body {
   box-shadow: 0 6px 20px rgba(61,38,69,0.12); position: relative; text-align: center;
 }
 .result-name { font-family: 'Baloo 2', sans-serif; font-size: 22px; font-weight: 800; margin-top: 6px; }
+.tap-hint { font-size: 11.5px; color: var(--faint); margin-top: 10px; font-weight: 600; }
 
 .week-recipe-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
 .week-item {
