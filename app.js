@@ -16,6 +16,7 @@ let state = {
   weekSearch: "", weekCuisine: "All",
   editingId: null,
   expandedId: null,
+  autoExpandDone: false,
   selectedWeek: new Set(),
   extraIngredients: [],
   removedItems: new Set(),
@@ -95,6 +96,23 @@ function splitIntoSentences(text) {
     .filter(Boolean);
 }
 
+// Turns raw textarea input into display-ready lines: keeps every line break the
+// person actually typed (including a blank line for spacing), and within each
+// of those lines, still splits run-on sentences and sentence-cases each one.
+function processRecipeText(raw) {
+  const manualLines = raw.split("\n");
+  const outLines = [];
+  manualLines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      outLines.push("");
+      return;
+    }
+    splitIntoSentences(trimmed).map(toSentenceCase).forEach(s => outLines.push(s));
+  });
+  return outLines.join("\n");
+}
+
 function renderChips(containerId, selected, onPick) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
@@ -116,7 +134,12 @@ function renderCookbook() {
     const matchCuisine = state.cookbookCuisine === "All" || r.cuisine === state.cookbookCuisine;
     const matchSearch = !q || r.name.toLowerCase().includes(q) || r.cuisine.toLowerCase().includes(q) || r.ingredients.some(i => i.toLowerCase().includes(q));
     return matchCuisine && matchSearch;
-  });
+  }).sort((a, b) => new Date(b.lastCooked) - new Date(a.lastCooked));
+
+  if (!state.autoExpandDone && filtered.length > 0) {
+    state.expandedId = filtered[0].id;
+    state.autoExpandDone = true;
+  }
 
   const list = document.getElementById("recipeList");
   const empty = document.getElementById("cookbookEmpty");
@@ -133,8 +156,8 @@ function renderCookbook() {
     card.className = "recipe-card " + tiltClass;
 
     const ingredientPills = r.ingredients.map(i => `<span class="ingredient-pill">${escapeHtml(i)}</span>`).join("");
-    const recipeLines = String(r.recipeText || "").split("\n").filter(Boolean)
-      .map(line => `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
+    const recipeLines = String(r.recipeText || "").split("\n")
+      .map(line => line.trim() === "" ? `<div class="recipe-gap"></div>` : `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
     const notesHtml = r.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(r.notes)}</span></div>` : "";
 
     card.innerHTML = `
@@ -205,7 +228,7 @@ async function saveRecipe() {
   const name = toTitleCase(rawName);
   const cuisine = document.getElementById("formCuisine").value;
   const rawRecipeText = document.getElementById("formRecipeText").value.trim();
-  const recipeText = splitIntoSentences(rawRecipeText).map(toSentenceCase).join("\n");
+  const recipeText = processRecipeText(rawRecipeText);
   const ingredients = document.getElementById("formIngredients").value.split(",").map(s => s.trim()).filter(Boolean).map(toSentenceCase);
   const notes = document.getElementById("formNotes").value.trim();
 
@@ -254,8 +277,8 @@ function rollRandom() {
 function renderRandomResult(pick) {
   const resultEl = document.getElementById("randomResult");
   const ingredientPills = pick.ingredients.map(i => `<span class="ingredient-pill">${escapeHtml(i)}</span>`).join("");
-  const recipeLines = String(pick.recipeText || "").split("\n").filter(Boolean)
-    .map(line => `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
+  const recipeLines = String(pick.recipeText || "").split("\n")
+    .map(line => line.trim() === "" ? `<div class="recipe-gap"></div>` : `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
   const notesHtml = pick.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(pick.notes)}</span></div>` : "";
 
   resultEl.innerHTML = `

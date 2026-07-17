@@ -131,6 +131,7 @@ body {
 .recipe-steps { margin: 0 0 10px; }
 .recipe-line { font-size: 13.5px; color: #4A3F52; line-height: 1.5; margin: 0 0 8px; }
 .recipe-line:last-child { margin-bottom: 0; }
+.recipe-gap { height: 8px; }
 .notes-box {
   display: flex; gap: 6px; background: #F5DFA0; padding: 8px 10px; border-radius: 10px;
 }
