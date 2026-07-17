@@ -27,6 +27,7 @@ let state = {
   extraIngredients: [],
   removedItems: new Set(),
   checkedItems: new Set(),
+  itemQuantities: {},
 };
 
 // ---------- Data layer (Google Sheet via Apps Script) ----------
@@ -116,6 +117,18 @@ function recencyKey(r) {
   return isNaN(t) ? 0 : t;
 }
 
+// Merges repeated ingredient names and counts how many times each shows up,
+// e.g. ["Garlic","Rice","Garlic"] -> [{name:"Garlic", count:2}, {name:"Rice", count:1}]
+function combineWithCounts(list) {
+  const counts = {};
+  const order = [];
+  list.forEach(item => {
+    if (!(item in counts)) order.push(item);
+    counts[item] = (counts[item] || 0) + 1;
+  });
+  return order.map(name => ({ name, count: counts[name] }));
+}
+
 // "chicken rice" -> "Chicken Rice"
 function toTitleCase(str) {
   return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
@@ -191,7 +204,8 @@ function renderCookbook() {
     const card = document.createElement("div");
     card.className = "recipe-card " + tiltClass;
 
-    const ingredientPills = r.ingredients.map(i => `<span class="ingredient-pill">${escapeHtml(i)}</span>`).join("");
+    const ingredientPills = combineWithCounts(r.ingredients)
+      .map(({ name, count }) => `<span class="ingredient-pill">${escapeHtml(name)}${count > 1 ? ` x${count}` : ""}</span>`).join("");
     const recipeLines = String(r.recipeText || "").split("\n")
       .map(line => line.trim() === "" ? `<div class="recipe-gap"></div>` : `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
     const notesHtml = r.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(r.notes)}</span></div>` : "";
@@ -313,7 +327,8 @@ function rollRandom() {
 
 function renderRandomResult(pick) {
   const resultEl = document.getElementById("randomResult");
-  const ingredientPills = pick.ingredients.map(i => `<span class="ingredient-pill">${escapeHtml(i)}</span>`).join("");
+  const ingredientPills = combineWithCounts(pick.ingredients)
+    .map(({ name, count }) => `<span class="ingredient-pill">${escapeHtml(name)}${count > 1 ? ` x${count}` : ""}</span>`).join("");
   const recipeLines = String(pick.recipeText || "").split("\n")
     .map(line => line.trim() === "" ? `<div class="recipe-gap"></div>` : `<p class="recipe-line">${escapeHtml(line)}</p>`).join("");
   const notesHtml = pick.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(pick.notes)}</span></div>` : "";
@@ -367,11 +382,10 @@ function renderWeekTab() {
 }
 
 function getShoppingList() {
-  const set = new Set();
-  recipes.forEach(r => { if (state.selectedWeek.has(r.id)) r.ingredients.forEach(i => set.add(i)); });
-  state.extraIngredients.forEach(i => set.add(i));
-  state.removedItems.forEach(i => set.delete(i));
-  return Array.from(set);
+  const raw = [];
+  recipes.forEach(r => { if (state.selectedWeek.has(r.id)) r.ingredients.forEach(i => raw.push(i)); });
+  state.extraIngredients.forEach(i => raw.push(i));
+  return combineWithCounts(raw).filter(item => !state.removedItems.has(item.name));
 }
 
 function renderShoppingList() {
@@ -383,24 +397,28 @@ function renderShoppingList() {
 
   const itemsEl = document.getElementById("shoppingListItems");
   itemsEl.innerHTML = "";
-  list.forEach(item => {
+  list.forEach(({ name, count }) => {
     const row = document.createElement("div");
-    row.className = "shopping-item" + (state.checkedItems.has(item) ? " checked" : "");
+    row.className = "shopping-item" + (state.checkedItems.has(name) ? " checked" : "");
     row.innerHTML = `
       <label>
-        <input type="checkbox" ${state.checkedItems.has(item) ? "checked" : ""} />
-        <span>${escapeHtml(item)}</span>
+        <input type="checkbox" ${state.checkedItems.has(name) ? "checked" : ""} />
+        <span>${escapeHtml(name)}${count > 1 ? ` <span class="dupe-count">x${count}</span>` : ""}</span>
       </label>
-      <button class="remove-item-btn" aria-label="Remove ${escapeHtml(item)}">
+      <input class="qty-input" placeholder="${count > 1 ? count : 1}" value="${escapeHtml(state.itemQuantities[name] || "")}" aria-label="Quantity for ${escapeHtml(name)}" />
+      <button class="remove-item-btn" aria-label="Remove ${escapeHtml(name)}">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#D99A9A" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
       </button>
     `;
-    row.querySelector("input").onchange = () => {
-      state.checkedItems.has(item) ? state.checkedItems.delete(item) : state.checkedItems.add(item);
+    row.querySelector('input[type="checkbox"]').onchange = () => {
+      state.checkedItems.has(name) ? state.checkedItems.delete(name) : state.checkedItems.add(name);
       renderShoppingList();
     };
+    row.querySelector(".qty-input").oninput = (e) => {
+      state.itemQuantities[name] = e.target.value;
+    };
     row.querySelector(".remove-item-btn").onclick = () => {
-      state.removedItems.add(item);
+      state.removedItems.add(name);
       renderShoppingList();
     };
     itemsEl.appendChild(row);
@@ -410,14 +428,17 @@ function renderShoppingList() {
 function addExtraIngredient() {
   const input = document.getElementById("extraInput");
   if (!input.value.trim()) return;
-  state.extraIngredients.push(input.value.trim());
+  state.extraIngredients.push(toSentenceCase(input.value.trim()));
   input.value = "";
   renderShoppingList();
 }
 
 function copyShoppingList() {
   const list = getShoppingList();
-  const text = list.map(i => `${state.checkedItems.has(i) ? "[x]" : "[ ]"} ${i}`).join("\n");
+  const text = list.map(({ name, count }) => {
+    const qty = (state.itemQuantities[name] || "").trim() || String(count);
+    return `${name} x ${qty}`;
+  }).join("\n");
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById("copyListBtn");
     btn.classList.add("copied");

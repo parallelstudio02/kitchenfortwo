@@ -129,9 +129,9 @@ body {
   border-radius: 10px; font-weight: 600; display: inline-block; margin: 0 6px 6px 0;
 }
 .recipe-steps { margin: 0 0 10px; }
-.recipe-line { font-size: 13.5px; color: #4A3F52; line-height: 1.5; margin: 0 0 8px; }
+.recipe-line { font-size: 13.5px; color: #4A3F52; line-height: 1.4; margin: 0 0 2px; }
 .recipe-line:last-child { margin-bottom: 0; }
-.recipe-gap { height: 8px; }
+.recipe-gap { height: 10px; }
 .notes-box {
   display: flex; gap: 6px; background: #F5DFA0; padding: 8px 10px; border-radius: 10px;
 }
@@ -172,11 +172,17 @@ body {
   cursor: pointer; font-family: inherit;
 }
 .copy-btn.copied { background: #5FBF6B; }
-.shopping-item { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.shopping-item label { display: flex; align-items: center; gap: 10px; font-size: 14px; flex: 1; }
-.shopping-item input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--turquoise); }
+.shopping-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.shopping-item label { display: flex; align-items: center; gap: 10px; font-size: 14px; flex: 1; min-width: 0; }
+.shopping-item input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--turquoise); flex-shrink: 0; }
 .shopping-item.checked label { color: var(--faint); text-decoration: line-through; }
-.remove-item-btn { background: none; border: none; padding: 4px; cursor: pointer; display: flex; }
+.dupe-count { font-size: 11px; font-weight: 700; color: var(--coral); text-decoration: none; }
+.qty-input {
+  width: 56px; flex-shrink: 0; border: 1px solid #F0E6D8; border-radius: 8px;
+  padding: 6px 8px; font-size: 12.5px; text-align: center; outline: none; font-family: inherit;
+  color: var(--plum); background: var(--bg);
+}
+.remove-item-btn { background: none; border: none; padding: 4px; cursor: pointer; display: flex; flex-shrink: 0; }
 .add-extra-row { display: flex; gap: 8px; margin-top: 14px; }
 .add-extra-row input {
   flex: 1; border: 1px solid #F0E6D8; border-radius: 10px; padding: 8px 12px;
