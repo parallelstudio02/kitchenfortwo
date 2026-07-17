@@ -1,9 +1,16 @@
 // ---------- Setup ----------
 const CUISINES = ["Chinese", "Japanese", "Korean", "Thai", "Italian", "Western", "Other"];
-const CUISINE_COLORS = {
-  Chinese: "#FF6B6A", Japanese: "#3DCCC7", Korean: "#8B7FE8",
-  Thai: "#5FBF6B", Italian: "#FF8E53", Western: "#4A9FE0", Other: "#B0A69A",
-};
+
+// Each dish gets its own color from this palette, so the board stays lively
+// even when several dishes share a cuisine, instead of one flat color per cuisine.
+const PALETTE = ["#FF6B6A", "#3DCCC7", "#8B7FE8", "#5FBF6B", "#FF8E53", "#4A9FE0", "#E85D9C", "#E0B23C"];
+
+function colorForRecipe(r) {
+  const str = String(r.id || r.name || "");
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  return PALETTE[hash % PALETTE.length];
+}
 const STALE_DAYS = 30;
 
 // Starts empty — recipes come from the Google Sheet once config.js is connected,
@@ -16,7 +23,6 @@ let state = {
   weekSearch: "", weekCuisine: "All",
   editingId: null,
   expandedId: null,
-  autoExpandDone: false,
   selectedWeek: new Set(),
   extraIngredients: [],
   removedItems: new Set(),
@@ -171,11 +177,6 @@ function renderCookbook() {
     return matchCuisine && matchSearch;
   }).sort((a, b) => recencyKey(b) - recencyKey(a));
 
-  if (!state.autoExpandDone && filtered.length > 0) {
-    state.expandedId = filtered[0].id;
-    state.autoExpandDone = true;
-  }
-
   const list = document.getElementById("recipeList");
   const empty = document.getElementById("cookbookEmpty");
   list.innerHTML = "";
@@ -196,11 +197,11 @@ function renderCookbook() {
     const notesHtml = r.notes ? `<div class="notes-box"><span>📝 ${escapeHtml(r.notes)}</span></div>` : "";
 
     card.innerHTML = `
-      <div class="tape ${tapeRotClass}" style="background:${CUISINE_COLORS[r.cuisine] || CUISINE_COLORS.Other}"></div>
+      <div class="tape ${tapeRotClass}" style="background:${colorForRecipe(r)}"></div>
       <div class="card-top">
         <div class="card-top-text">
           <div class="card-name">${escapeHtml(r.name)}</div>
-          <span class="badge" style="background:${CUISINE_COLORS[r.cuisine] || CUISINE_COLORS.Other}">${escapeHtml(r.cuisine)}</span>
+          <span class="badge" style="background:${colorForRecipe(r)}">${escapeHtml(r.cuisine)}</span>
           ${stale ? `<span class="stale-badge">⏱ haven't made this in a while</span>` : ""}
         </div>
         <button class="edit-btn">Edit</button>
@@ -320,7 +321,7 @@ function renderRandomResult(pick) {
   resultEl.innerHTML = `
     <div class="result-card" style="cursor:pointer;">
       <div class="result-name">${escapeHtml(pick.name)}</div>
-      <span class="badge" style="background:${CUISINE_COLORS[pick.cuisine] || CUISINE_COLORS.Other}">${escapeHtml(pick.cuisine)}</span>
+      <span class="badge" style="background:${colorForRecipe(pick)}">${escapeHtml(pick.cuisine)}</span>
       ${randomExpanded ? `
         <div class="card-detail" style="text-align:left; margin-top:14px;">
           <div class="detail-label">Ingredients</div>
@@ -353,7 +354,7 @@ function renderWeekTab() {
     row.innerHTML = `
       <input type="checkbox" ${state.selectedWeek.has(r.id) ? "checked" : ""} />
       <div class="name">${escapeHtml(r.name)}</div>
-      <span class="badge" style="background:${CUISINE_COLORS[r.cuisine] || CUISINE_COLORS.Other}">${escapeHtml(r.cuisine)}</span>
+      <span class="badge" style="background:${colorForRecipe(r)}">${escapeHtml(r.cuisine)}</span>
     `;
     row.querySelector("input").onchange = () => {
       state.selectedWeek.has(r.id) ? state.selectedWeek.delete(r.id) : state.selectedWeek.add(r.id);
