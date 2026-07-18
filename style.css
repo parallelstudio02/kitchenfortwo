@@ -93,7 +93,7 @@ body {
 .recipe-list { display: flex; flex-direction: column; gap: 22px; }
 .recipe-card {
   position: relative; background: var(--card); border-radius: 18px;
-  padding: 18px 16px 16px; box-shadow: 0 4px 14px rgba(61,38,69,0.10);
+  padding: 18px 16px 16px; box-shadow: 0 4px 14px rgba(61,38,69,0.10); cursor: pointer;
 }
 .recipe-card.tilt-l { transform: rotate(-1.5deg); }
 .recipe-card.tilt-r { transform: rotate(1.5deg); }
@@ -227,4 +227,9 @@ body {
   width: 100%; background: var(--coral); border: none; border-radius: 14px; padding: 13px;
   color: #fff; font-weight: 700; font-size: 15px; margin-top: 6px; cursor: pointer;
   font-family: 'Baloo 2', sans-serif;
+}
+.delete-btn {
+  width: 100%; background: none; border: 1.5px solid #E8A9A9; border-radius: 14px; padding: 11px;
+  color: #C24F4F; font-weight: 700; font-size: 13.5px; margin-top: 10px; cursor: pointer;
+  font-family: inherit;
 }

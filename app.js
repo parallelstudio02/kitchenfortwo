@@ -17,10 +17,17 @@ const STALE_DAYS = 30;
 // or from whatever you add in the Cookbook tab.
 let recipes = [];
 
+function safeGetItem(key) {
+  try { return localStorage.getItem(key); } catch (err) { return null; }
+}
+function safeSetItem(key, val) {
+  try { localStorage.setItem(key, val); } catch (err) { /* ignore */ }
+}
+
 let state = {
   tab: "cookbook",
-  cookbookSearch: "", cookbookCuisine: "All",
-  weekSearch: "", weekCuisine: "All",
+  cookbookSearch: "", cookbookCuisine: safeGetItem("kftw_cookbookCuisine") || "All",
+  weekSearch: "", weekCuisine: safeGetItem("kftw_weekCuisine") || "All",
   editingId: null,
   expandedId: null,
   selectedWeek: new Set(),
@@ -181,7 +188,7 @@ function renderChips(containerId, selected, onPick) {
 
 // ---------- Cookbook tab ----------
 function renderCookbook() {
-  renderChips("cookbookCuisineChips", state.cookbookCuisine, (c) => { state.cookbookCuisine = c; renderCookbook(); });
+  renderChips("cookbookCuisineChips", state.cookbookCuisine, (c) => { state.cookbookCuisine = c; safeSetItem("kftw_cookbookCuisine", c); renderCookbook(); });
 
   const q = state.cookbookSearch.toLowerCase().trim();
   const filtered = recipes.filter(r => {
@@ -230,8 +237,8 @@ function renderCookbook() {
       </div>` : ""}
     `;
 
-    card.querySelector(".card-top-text").onclick = () => { state.expandedId = expanded ? null : r.id; renderCookbook(); };
-    card.querySelector(".edit-btn").onclick = () => openForm(r);
+    card.querySelector(".edit-btn").onclick = (e) => { e.stopPropagation(); openForm(r); };
+    card.onclick = () => { state.expandedId = expanded ? null : r.id; renderCookbook(); };
     list.appendChild(card);
   });
 }
@@ -256,6 +263,7 @@ function openForm(recipe) {
     document.getElementById("formRecipeText").value = recipe.recipeText;
     document.getElementById("formIngredients").value = recipe.ingredients.join(", ");
     document.getElementById("formNotes").value = recipe.notes || "";
+    document.getElementById("deleteRecipeBtn").style.display = "block";
   } else {
     state.editingId = null;
     document.getElementById("modalTitle").textContent = "New recipe";
@@ -264,6 +272,7 @@ function openForm(recipe) {
     document.getElementById("formRecipeText").value = "";
     document.getElementById("formIngredients").value = "";
     document.getElementById("formNotes").value = "";
+    document.getElementById("deleteRecipeBtn").style.display = "none";
   }
 }
 
@@ -301,6 +310,36 @@ async function saveRecipe() {
   renderAll();
   saveCachedRecipes(recipes);
   await saveRecipeToSheet(recipeObj);
+}
+
+async function deleteRecipe() {
+  if (!state.editingId) return;
+  const recipe = recipes.find(r => r.id === state.editingId);
+  if (!recipe) return;
+  if (!confirm(`Delete "${recipe.name}" for good?`)) return;
+
+  recipes = recipes.filter(r => r.id !== state.editingId);
+  state.selectedWeek.delete(state.editingId);
+  closeForm();
+  renderAll();
+  saveCachedRecipes(recipes);
+  await deleteRecipeFromSheet(recipe.name);
+}
+
+async function deleteRecipeFromSheet(name) {
+  if (!API_URL || API_URL.indexOf("PASTE_YOUR") === 0) return;
+  setSyncStatus("Deleting...");
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "delete", name }),
+    });
+    setSyncStatus("Deleted");
+    setTimeout(() => setSyncStatus(""), 1500);
+  } catch (err) {
+    setSyncStatus("Could not delete from the Google Sheet, check the connection");
+  }
 }
 
 // ---------- Spoonprise Us tab ----------
@@ -352,7 +391,7 @@ function renderRandomResult(pick) {
 
 // ---------- This Week tab ----------
 function renderWeekTab() {
-  renderChips("weekCuisineChips", state.weekCuisine, (c) => { state.weekCuisine = c; renderWeekTab(); });
+  renderChips("weekCuisineChips", state.weekCuisine, (c) => { state.weekCuisine = c; safeSetItem("kftw_weekCuisine", c); renderWeekTab(); });
 
   const q = state.weekSearch.toLowerCase().trim();
   const filtered = recipes.filter(r => {
@@ -405,7 +444,7 @@ function renderShoppingList() {
         <input type="checkbox" ${state.checkedItems.has(name) ? "checked" : ""} />
         <span>${escapeHtml(name)}${count > 1 ? ` <span class="dupe-count">x${count}</span>` : ""}</span>
       </label>
-      <input class="qty-input" placeholder="${count > 1 ? count : 1}" value="${escapeHtml(state.itemQuantities[name] || "")}" aria-label="Quantity for ${escapeHtml(name)}" />
+      <input class="qty-input" placeholder="qty" value="${escapeHtml(state.itemQuantities[name] || "")}" aria-label="Quantity for ${escapeHtml(name)}" />
       <button class="remove-item-btn" aria-label="Remove ${escapeHtml(name)}">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#D99A9A" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
       </button>
@@ -470,6 +509,7 @@ document.getElementById("weekSearch").addEventListener("input", (e) => { state.w
 document.getElementById("openAddForm").addEventListener("click", () => openForm(null));
 document.getElementById("closeForm").addEventListener("click", closeForm);
 document.getElementById("saveRecipeBtn").addEventListener("click", saveRecipe);
+document.getElementById("deleteRecipeBtn").addEventListener("click", deleteRecipe);
 document.getElementById("rollRandomBtn").addEventListener("click", rollRandom);
 document.getElementById("addExtraBtn").addEventListener("click", addExtraIngredient);
 document.getElementById("extraInput").addEventListener("keydown", (e) => { if (e.key === "Enter") addExtraIngredient(); });
