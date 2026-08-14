@@ -1,0 +1,26 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="128" cy="128" r="128" fill="#FF6B6A"/>
+  <circle cx="128" cy="128" r="118" fill="none" stroke="#FFC93C" stroke-width="4" opacity="0.5"/>
+
+  <g transform="translate(0, 28)">
+    <!-- pot body -->
+    <path d="M74 168 Q66 122 76 108 H180 Q190 122 182 168 Z" fill="#FFF4E0"/>
+    <ellipse cx="128" cy="108" rx="54" ry="12" fill="#FFC93C"/>
+    <rect x="46" y="98" width="26" height="16" rx="8" fill="#FFC93C"/>
+    <rect x="184" y="98" width="26" height="16" rx="8" fill="#FFC93C"/>
+
+    <!-- crossed spoons -->
+    <g>
+      <path d="M104 96 L98 40" stroke="#3DCCC7" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="97" cy="34" r="12" fill="#3DCCC7"/>
+    </g>
+    <g>
+      <path d="M152 96 L162 38" stroke="#8B7FE8" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="163" cy="32" r="12" fill="#8B7FE8"/>
+    </g>
+
+    <!-- little steam puffs -->
+    <path d="M60 84 Q68 70 60 56" stroke="#FFF4E0" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M198 84 Q190 70 198 56" stroke="#FFF4E0" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.85"/>
+  </g>
+</svg>
