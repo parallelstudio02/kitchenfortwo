@@ -57,6 +57,26 @@ function saveCachedRecipes(list) {
   }
 }
 
+// The Sheet's headers are typed by hand, so this reads fields back
+// case-insensitively (cuisine, Cuisine, cusine, CUISINE all land the same way)
+// instead of silently coming back blank over a typo.
+function normalizeRecipe(r) {
+  const lower = {};
+  Object.keys(r).forEach(k => { lower[k.toLowerCase().replace(/\s+/g, "")] = r[k]; });
+  const ingredientsRaw = lower.ingredients;
+  return {
+    id: r.id,
+    name: lower.name || "",
+    cuisine: lower.cuisine || lower.cusine || "Other",
+    recipeText: lower.recipetext || "",
+    ingredients: Array.isArray(ingredientsRaw)
+      ? ingredientsRaw
+      : String(ingredientsRaw || "").split(";").map(s => s.trim()).filter(Boolean),
+    notes: lower.notes || "",
+    lastCooked: lower.lastcooked || "",
+  };
+}
+
 async function loadRecipes() {
   // Show whatever we saw last time immediately, no waiting on the network for this part
   const cached = loadCachedRecipes();
@@ -74,10 +94,7 @@ async function loadRecipes() {
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
-    recipes = data.map(r => ({
-      ...r,
-      ingredients: Array.isArray(r.ingredients) ? r.ingredients : String(r.ingredients || "").split(";").map(s => s.trim()).filter(Boolean)
-    }));
+    recipes = data.map(normalizeRecipe);
     saveCachedRecipes(recipes);
     setSyncStatus("");
     renderAll();
